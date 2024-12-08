@@ -1,6 +1,5 @@
 #include <strings.h>
 #include <stdbool.h>
-#include <stdio.h>
 
 #include "xml.h"
 
@@ -189,6 +188,25 @@ static xmlNodePtr _xml_find_internal(xmlNodePtr root, size_t depth, const char *
 xmlNodePtr xml_find(xmlNodePtr root, const char *path)
 { return _xml_find_internal(root, 1, path); }
 
+void xml_node_attributes(xmlNodePtr node, int (^blk)(xmlAttrPtr attr, size_t n))
+{
+    xmlAttrPtr attr = node->properties;
+    size_t n = 0;
+
+    while (attr)
+    {
+        if (!blk(attr, n)) {
+            return;
+        }
+
+        attr = attr->next;
+        n++;
+    }
+}
+
+char *xml_attr_val(xmlAttrPtr attr)
+{ return (attr->children ? (char *)attr->children->content : NULL); }
+
 void xml_dump_node(xmlNodePtr node)
 {
     xmlNsPtr namespace = node->ns;
@@ -210,7 +228,7 @@ void xml_dump_node(xmlNodePtr node)
         }
 
         printf("%s=[", attr->name);
-        printf("%s", attr->children->content);
+        printf("%s", xml_attr_val(attr));
         printf("])");
 
         attr = attr->next;

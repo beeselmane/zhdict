@@ -17,6 +17,21 @@ static inline void _zerror(const char *func, int code)
 static inline void zerror(const char *func, zip_t *archive)
 { fprintf(stderr, "%s: %s\n", func, zip_error_strerror(zip_get_error(archive))); }
 
+// Open zip archive, reporting any errors (NULL on failure)
+static inline zip_t *zopen(const char *path)
+{
+    zip_t *archive;
+    int error;
+
+    if (!(archive = zip_open(path, ZIP_RDONLY, &error)))
+    {
+        _zerror("zip_open", error);
+        return NULL;
+    }
+
+    return archive;
+}
+
 // Close zip archive, reporting any errors.
 static inline void zclose(zip_t *archive)
 {

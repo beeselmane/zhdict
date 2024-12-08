@@ -28,6 +28,12 @@ extern void xml_visit_tree(xmlNodePtr root, size_t depth, int (^blk)(xmlNodePtr 
 // Lookup node at "path" (separated by XML_PATH_SEP) relative to a given node.
 extern xmlNodePtr xml_find(xmlNodePtr root, const char *path);
 
+// Visit each attribute of a given node. `n` is the index of the attribute. Return `0` to stop.
+extern void xml_node_attributes(xmlNodePtr node, int (^blk)(xmlAttrPtr attr, size_t n));
+
+// Return the string value of an attribute.
+extern char *xml_attr_val(xmlAttrPtr attr);
+
 // Dump node info to stdout, including namespace, name, and attributes.
 extern void xml_dump_node(xmlNodePtr node);
 
