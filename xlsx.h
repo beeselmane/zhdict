@@ -59,11 +59,18 @@ struct xlsx {
     struct xlsx_value *grid;
 };
 
+// Get value of `XLSX_TYPE_STR` entries.
+#define xlsx_str(doc, val)  ((doc)->strtab.base[(val)->sref])
+
+// Get # of rows/cols in a document.
 #define xlsx_rows(doc) ((doc)->rows)
 #define xlsx_cols(doc) ((doc)->cols)
 
 // Read in excel document at a given path.
 extern struct xlsx *xlsx_doc_at(const char *path);
+
+// Get the i'th row in an excel document
+extern struct xlsx_value *xlsx_row(struct xlsx *doc, size_t i);
 
 // Perform a block on each row in an excel document. There are `xlsx_cols(doc)` entries in the passed array. `n` is the row number. Return `0` to stop.
 extern void xlsx_foreach_row(struct xlsx *doc, int (^blk)(struct xlsx_value *row, size_t n));
@@ -71,6 +78,9 @@ extern void xlsx_foreach_row(struct xlsx *doc, int (^blk)(struct xlsx_value *row
 // Iterate a block over a column in an excel document. The block will get called on each entry in the given column.
 // There are `xlsx_rows(doc)` entries in each column. `n` is the row number of the entry in this column. Return `0` to stop.
 extern void xlsx_iter_col(struct xlsx *doc, size_t col, int (^blk)(struct xlsx_value *entry, size_t n));
+
+// Iterate over all entries. Return `0` to stop.
+extern void xlsx_foreach(struct xlsx *doc, int (^blk)(struct xlsx_value *value, size_t row, size_t col));
 
 // Free memory for an excel document, destroying it.
 extern void xlsx_doc_free(struct xlsx *doc);

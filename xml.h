@@ -34,6 +34,9 @@ extern void xml_node_attributes(xmlNodePtr node, int (^blk)(xmlAttrPtr attr, siz
 // Return the string value of an attribute.
 extern char *xml_attr_val(xmlAttrPtr attr);
 
+// Lookup the values of a named attribute of a node.
+extern char *xml_node_attribute(xmlNodePtr node, const char *name);
+
 // Dump node info to stdout, including namespace, name, and attributes.
 extern void xml_dump_node(xmlNodePtr node);
 

@@ -207,6 +207,20 @@ void xml_node_attributes(xmlNodePtr node, int (^blk)(xmlAttrPtr attr, size_t n))
 char *xml_attr_val(xmlAttrPtr attr)
 { return (attr->children ? (char *)attr->children->content : NULL); }
 
+char *xml_node_attribute(xmlNodePtr node, const char *name)
+{
+    __block char *value = NULL;
+
+    xml_node_attributes(node, ^(xmlAttrPtr attr, size_t _) {
+        if (strcmp(name, (char *)attr->name)) { return true; }
+
+        value = xml_attr_val(attr);
+        return false;
+    });
+
+    return value;
+}
+
 void xml_dump_node(xmlNodePtr node)
 {
     xmlNsPtr namespace = node->ns;
