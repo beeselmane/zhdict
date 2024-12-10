@@ -1,0 +1,18 @@
+A tool I wrote to parse and access the Chinese dictionary from the Taiwanese Ministry of Education.
+
+I wrote this on a plane, so I didn't have access to the internet.
+As such, I ended up writing my own XLSX parser using libzip and libxml2.
+
+Included are 4 tools:
+1. xml is a tool which dumps a tree view of any XML document.
+2. zxml is a tool which dumps a tree view of any XML document at a given path within a ZIP archive.
+3. xlsx is a tool which reads and presents a view of an XLSX document on the command line.
+4. dict is a basic query system which reads the Chinese dictionary and displays definitions for queried items.
+
+The idea is to make this into an app I can use on my phone with a nice interface.
+There used to be such an app on the apple store, but it appears to have disappeared and it didn't have a very nice interface.
+As part of this goal, I want to eventually convert the Excel document into a sqlite database.
+Particularly, I'd like to parse the definition strings and make them more structured.
+Currently, they're just flat strings in cells.
+
+The dictionary data can be downloaded here: https://language.moe.gov.tw/001/Upload/Files/site_content/M0001/respub/dict_reviseddict_download.html
