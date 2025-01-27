@@ -1,6 +1,6 @@
 // Extra helper routines on top of libzip.
-#ifndef __ZIP__
-#define __ZIP__ 1
+#ifndef __XZIP__
+#define __XZIP__ 1
 
 #include <stdio.h>
 #include <zip.h>
@@ -39,4 +39,4 @@ static inline void zclose(zip_t *archive)
     { zerror("zip_close", archive); }
 }
 
-#endif /* !defined(__ZIP__) */
+#endif /* !defined(__XZIP__) */

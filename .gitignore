@@ -1,6 +1,3 @@
 .clangd
-data
-xlsx
-zxml
-xml
-dict
+data/
+build/

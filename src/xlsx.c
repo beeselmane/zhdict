@@ -2,8 +2,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "xlsx.h"
-#include "xml.h"
+#include <xlsx.h>
+#include <xml.h>
 
 // "rels" file stores some info on how to access worksheet data.
 #define XLSX_RELS "xl/_rels/workbook.xml.rels"
@@ -337,7 +337,7 @@ static int _xlsx_sheet(zip_t *archive, const char *path, struct xlsx *doc)
                 memcpy(&cnames[cname_maxlen * j], cname, cname_len);
                 (&cnames[cname_maxlen * j])[cname_len] = 0;
 
-                if (DEBUG_XLSX) {
+                if (false && DEBUG_XLSX) {
                     fprintf(stderr, "Column %zu: '%s'\n", j, &cnames[cname_maxlen * j]);
                 }
             } else {
@@ -639,51 +639,3 @@ void xlsx_doc_free(struct xlsx *doc)
     // And finally the structure itself.
     free(doc);
 }
-
-#ifdef __XLSX_STANDALONE__
-    // Test main function which reads in an XLSX file and dumps it in a grid.
-    int main(int argc, const char *const *argv)
-    {
-        if (argc != 2)
-        {
-            fprintf(stderr, "Error: Need exactly 1 argument.\n");
-            return 1;
-        }
-
-        struct xlsx *document = xlsx_doc_at(argv[1]);
-        if (!document) { return 1; }
-        __block size_t lrow = 0;
-
-        printf("%4s", "");
-
-        for (size_t i = 0; i < xlsx_cols(document); i++) {
-            printf("%*s%03zu", 13, "C", i);
-        }
-
-        putchar('\n');
-
-        xlsx_foreach_row(document, ^(struct xlsx_value *row, size_t n) {
-            printf("R%03zu", n);
-
-            for (size_t col = 0; col < xlsx_cols(document); col++)
-            {
-                struct xlsx_value *value = &row[col];
-
-                switch (value->type)
-                {
-                    case XLSX_TYPE_NULL:  printf("%16s", "");                        break;
-                    case XLSX_TYPE_STR:   printf("%16s", xlsx_str(document, value)); break;
-                    case XLSX_TYPE_INT:   printf("%16lld", value->ival);             break;
-                    case XLSX_TYPE_FLOAT: printf("%16lf", value->fval);              break;
-                    case XLSX_TYPE_LSTR:  printf("%16s", value->str);                break;
-                }
-            }
-
-            putchar('\n');
-            return true;
-        });
-
-        xlsx_doc_free(document);
-        return 0;
-    }
-#endif /* defined(__XLSX_STANDALONE__) */

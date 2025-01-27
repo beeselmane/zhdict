@@ -2,7 +2,7 @@
 #define __XML__
 
 #include <libxml/parser.h>
-#include "zip.h"
+#include <xzip.h>
 
 // Enable debug messages
 #define DEBUG_XML 1

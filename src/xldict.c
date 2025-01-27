@@ -1,11 +1,12 @@
+// Command line tool to query dictionary from xlsx file.
 #include <strings.h>
 #include <stdbool.h>
 
-#include "xlsx.h"
+#include <xlsx.h>
 
-int do_query(struct xlsx *doc, const char *query, off_t names, off_t defs)
+static int do_query(struct xlsx *doc, const char *query, off_t names, off_t defs)
 {
-    __block int64_t match = -1;
+    __block unsigned int matches = 0;
 
     xlsx_iter_col(doc, names, ^(struct xlsx_value *val, size_t row) {
         if (val->type != XLSX_TYPE_STR)
@@ -18,31 +19,27 @@ int do_query(struct xlsx *doc, const char *query, off_t names, off_t defs)
 
         if (!strcmp(name, query))
         {
-            match = row;
-            return false;
+            matches++;
+
+            struct xlsx_value *info = xlsx_row(doc, row);
+            if (!info) { return false; }
+
+            printf("Found '%s' at %zu.\n", query, row + 1);
+
+            struct xlsx_value *def = &info[defs];
+            if (!def) { return true; }
+
+            if (def->type != XLSX_TYPE_STR) {
+                fprintf(stderr, "Error: Definition is not of string type! (type=%d)\n", def->type);
+            } else {
+                printf("Definition %u:\n%s\n", matches, xlsx_str(doc, def));
+            }
         }
 
         return true;
     });
 
-    if (match >= 0)
-    {
-        struct xlsx_value *info = xlsx_row(doc, match);
-        if (!info) { return false; }
-
-        printf("Found '%s' at %lld.\n", query, match + 1);
-
-        struct xlsx_value *def = &info[defs];
-        if (!def) { return false; }
-
-        if (def->type != XLSX_TYPE_STR) {
-            fprintf(stderr, "Error: Definition is not of string type! (type=%d)\n", def->type);
-        } else {
-            printf("Definition:\n%s\n", xlsx_str(doc, def));
-        }
-    }
-
-    return (match < 0);
+    return !!matches;
 }
 
 int main(int argc, const char *const *argv)

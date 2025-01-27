@@ -1,7 +1,7 @@
 #include <strings.h>
 #include <stdbool.h>
 
-#include "xml.h"
+#include <xml.h>
 
 #define foreach(node, v, f, blk)    \
     do {                            \
@@ -269,23 +269,3 @@ void xml_dump_tree(xmlNodePtr root)
         return true;
     });
 }
-
-#ifdef __XML_STANDALONE__
-    // Test main function which dumps a passed XML file.
-    int main(int argc, const char *const *argv)
-    {
-        if (argc != 2)
-        {
-            fprintf(stderr, "Error: Need exactly 1 argument.\n");
-            return 1;
-        }
-
-        xmlNodePtr root = xml_root_at(argv[1]);
-        if (!root) { return 1; }
-
-        xml_dump_tree(root);
-
-        xmlFreeDoc(root->doc);
-        return 0;
-    }
-#endif /* defined(__XML_STANDALONE__) */
