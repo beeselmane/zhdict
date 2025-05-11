@@ -1,4 +1,9 @@
-// Convert dictionary data from XLSX document to sqlite database
+/* ********************************************************** */
+/* -*- conv.c -*- Convert dictionary from xlsx to sqlite  -*- */
+/* ********************************************************** */
+/* Tyler Besselman (C) August 2024                            */
+/* ********************************************************** */
+
 #include <strings.h>
 #include <stdbool.h>
 #include <unistd.h>

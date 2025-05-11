@@ -1,4 +1,9 @@
-// Command line tool to query dictionary from xlsx file.
+/* ********************************************************** */
+/* -*- xldict.c -*- Query xlsx dictionary                 -*- */
+/* ********************************************************** */
+/* Tyler Besselman (C) August 2024                            */
+/* ********************************************************** */
+
 #include <strings.h>
 #include <stdbool.h>
 

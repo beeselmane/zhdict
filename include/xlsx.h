@@ -1,3 +1,9 @@
+/* ********************************************************** */
+/* -*- xlsx.h -*- Excel XLSX format reader                -*- */
+/* ********************************************************** */
+/* Tyler Besselman (C) August 2024                            */
+/* ********************************************************** */
+
 #ifndef __XLSX__
 #define __XLSX__ 1
 
@@ -60,7 +66,7 @@ struct xlsx {
 };
 
 // Get value of `XLSX_TYPE_STR` entries.
-#define xlsx_str(doc, val)  ((doc)->strtab.base[(val)->sref])
+#define xlsx_str(doc, val) ((doc)->strtab.base[(val)->sref])
 
 // Get # of rows/cols in a document.
 #define xlsx_rows(doc) ((doc)->rows)

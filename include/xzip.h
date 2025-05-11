@@ -1,4 +1,9 @@
-// Extra helper routines on top of libzip.
+/* ********************************************************** */
+/* -*- xzip.h -*- Helper routines on top of libzip        -*- */
+/* ********************************************************** */
+/* Tyler Besselman (C) August 2024                            */
+/* ********************************************************** */
+
 #ifndef __XZIP__
 #define __XZIP__ 1
 

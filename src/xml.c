@@ -1,3 +1,9 @@
+/* ********************************************************** */
+/* -*- xml.c -*- XML routines on top of libxml2           -*- */
+/* ********************************************************** */
+/* Tyler Besselman (C) August 2024                            */
+/* ********************************************************** */
+
 #include <strings.h>
 #include <stdbool.h>
 
@@ -15,7 +21,7 @@
         }                           \
     } while (0)
 
-// Root node from document.
+// Get root node from document.
 static xmlNodePtr _xml_root_for(xmlDocPtr doc)
 {
     xmlNodePtr root = xmlDocGetRootElement(doc);

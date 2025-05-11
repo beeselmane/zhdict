@@ -1,4 +1,9 @@
-// Some standalone tools for dealing with xlsx/xml documents.
+/* ********************************************************** */
+/* -*- cmd.c -*- Source for some basic XML/XLSX utilities -*- */
+/* ********************************************************** */
+/* Tyler Besselman (C) August 2024                            */
+/* ********************************************************** */
+
 #include <stdbool.h>
 #include <stdio.h>
 
