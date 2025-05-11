@@ -25,7 +25,7 @@ static int make_tables(sqlite3 *db)
         "字詞名 text, "
         "字數 integer, "
         "編號 integer primary key, "
-        "部手 integer references 部首 (id), "
+        "部首 integer references 部首 (id), "
         "筆畫數 integer, "
         "部首外筆畫數 integer, "
         "注音 text, "
@@ -75,7 +75,7 @@ static sqlite3_stmt *make_insert_dict(sqlite3 *db)
         "?" STR(ins_dict_char)  ", " /* 字詞名 */
         "?" STR(ins_dict_cnt)   ", " /* 字數 */
         "?" STR(ins_dict_num)   ", " /* 編號 */
-        "?" STR(ins_dict_rad)   ", " /* 部手 */
+        "?" STR(ins_dict_rad)   ", " /* 部首 */
         "?" STR(ins_dict_str)   ", " /* 筆畫數 */
         "?" STR(ins_dict_xstr)  ", " /* 部首外筆畫數 */
         "?" STR(ins_dict_prn)   ", " /* 注音 */

@@ -1,12 +1,13 @@
 A tool I wrote to parse and access the Chinese dictionary from the Taiwanese Ministry of Education.
 
-I wrote this on a plane, so I didn't have access to the internet.
+I wrote the initial portion of this on a plane, so I didn't have access to the internet.
 As such, I ended up writing my own XLSX parser using libzip and libxml2.
 
-Included are 4 tools:
+Included are 3 basic file format tools:
 1. xml is a tool which dumps a tree view of any XML document.
 2. zxml is a tool which dumps a tree view of any XML document at a given path within a ZIP archive.
 3. xlsx is a tool which reads and presents a view of an XLSX document on the command line.
+
 4. dict is a basic query system which reads the Chinese dictionary and displays definitions for queried items.
 
 The idea is to make this into an app I can use on my phone with a nice interface.
