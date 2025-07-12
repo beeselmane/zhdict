@@ -1,7 +1,7 @@
 /* ********************************************************** */
 /* -*- xlsx.c -*- Excel XLSX format reader                -*- */
 /* ********************************************************** */
-/* Tyler Besselman (C) August 2024                            */
+/* Tyler Besselman (C) December 2024                          */
 /* ********************************************************** */
 
 #include <strings.h>
@@ -56,12 +56,6 @@ static xmlNodePtr _xlsx_xl_root(zip_t *archive, const char *path)
     xmlNodePtr root = zxml_root_at(archive, xl_path);
     free(xl_path);
 
-    if (!root)
-    {
-        zclose(archive);
-        return NULL;
-    }
-
     return root;
 }
 
@@ -77,9 +71,7 @@ static int _xlsx_strtab(zip_t *archive, const char *path, struct xlsx_strtab *st
     if (!table)
     {
         fprintf(stderr, "Error: Excel document has malformed strings table!\n");
-
         xmlFreeDoc(strdata->doc);
-        zclose(archive);
 
         return 1;
     }
@@ -116,7 +108,7 @@ static int _xlsx_strtab(zip_t *archive, const char *path, struct xlsx_strtab *st
 
         xml_visit_tree(table, 1, ^(xmlNodePtr node, size_t depth, size_t n) {
             strtab->count++;
-            return false;
+            return 1;
         });
 
         strtab->base = calloc(strtab->count, sizeof(char *));
@@ -126,44 +118,33 @@ static int _xlsx_strtab(zip_t *archive, const char *path, struct xlsx_strtab *st
             perror("calloc");
 
             xmlFreeDoc(strdata->doc);
-            zclose(archive);
-
             return 1;
         }
     }
 
-    xml_visit_tree(table, 1, ^(xmlNodePtr node, size_t depth, size_t n) {
+    int ok = !xml_visit_tree(table, 1, ^(xmlNodePtr node, size_t depth, size_t n) {
         xmlNodePtr tnode = xml_find(node, "si.t.text");
 
         if (!tnode)
         {
             fprintf(stderr, "Warning: Excel document string entry %zu is invalid.\n", n);
-            return false;
-        }
-
-        // This can happen if we go past the end of the preallocated buffer.
-        if (!strtab->base) {
-            return false;
+            return -1;
         }
 
         if (n >= strtab->count)
         {
             fprintf(stderr, "Error: Excel document has more strings than indicated!\n");
-
-            free(strtab->base);
-            strtab->base = NULL;
-
-            return false;
+            return -1;
         }
 
         strtab->base[n] = (char *)tnode->content;
-        return false;
+        return 1;
     });
 
-    if (!strtab->base)
+    if (!ok)
     {
         xmlFreeDoc(strdata->doc);
-        zclose(archive);
+        free(strtab->base);
 
         return 1;
     }
@@ -186,9 +167,7 @@ static int _xlsx_sheet(zip_t *archive, const char *path, struct xlsx *doc)
     if (!sheet)
     {
         fprintf(stderr, "Error: Excel document has no sheet data!\n");
-
         xmlFreeDoc(wsdata->doc);
-        zclose(archive);
 
         return 1;
     }
@@ -201,13 +180,9 @@ static int _xlsx_sheet(zip_t *archive, const char *path, struct xlsx *doc)
     doc->rows = 0;
     doc->cols = 0;
 
-    // Something may seem wrong about the document in the below loop...
-    __block bool ok = true;
-
     // Count rows and columns to just do a single big allocation.
-    xml_visit_tree(sheet, 1, ^(xmlNodePtr row, size_t _, size_t i) {
+    int ok = !xml_visit_tree(sheet, 1, ^(xmlNodePtr row, size_t _, size_t i) {
         if (i > doc->rows) { doc->rows = i; }
-        __block size_t rowlen = 0;
 
         // We need the row name to find the column name.
         const char *row_name = xml_node_attribute(row, "r");
@@ -215,9 +190,7 @@ static int _xlsx_sheet(zip_t *archive, const char *path, struct xlsx *doc)
         if (!row_name)
         {
             fprintf(stderr, "Error: Excel document has invalid row name!\n");
-            ok = false;
-
-            return false;
+            return -1;
         }
 
         // For some reason columns names include the row name at the end,
@@ -226,7 +199,7 @@ static int _xlsx_sheet(zip_t *archive, const char *path, struct xlsx *doc)
 
         // Realistically, it seems columns are maximal on the first row and only decrease
         //   or stay the same on subsequent rows, but this is safer.
-        xml_visit_tree(row, 2, ^(xmlNodePtr col, size_t _, size_t j) {
+        int keep_going = !xml_visit_tree(row, 2, ^(xmlNodePtr col, size_t _, size_t j) {
             if (j > doc->cols) { doc->cols = j; }
 
             // Again, check everything on the first pass.
@@ -236,25 +209,21 @@ static int _xlsx_sheet(zip_t *archive, const char *path, struct xlsx *doc)
             if (!col_name)
             {
                 fprintf(stderr, "Error: Excel document has invalid column name!\n");
-                ok = false;
-
-                return false;
+                return -1;
             }
 
             size_t cname_len = strlen(col_name) - row_namelen;
             if (cname_len > cname_maxlen) { cname_maxlen = cname_len; }
 
-            return false;
+            return 1;
         });
 
-        return false;
+        return (keep_going ? 1 : -1);
     });
 
     if (!ok)
     {
         xmlFreeDoc(wsdata->doc);
-        zclose(archive);
-
         return 1;
     }
 
@@ -266,7 +235,7 @@ static int _xlsx_sheet(zip_t *archive, const char *path, struct xlsx *doc)
         printf("Document has %zu rows, %zu cols (mem=%zu).\n", doc->rows, doc->cols, doc->rows * doc->cols * sizeof(struct xlsx_value));
     }
 
-    // Do one big allocation.
+    // Do one big allocation (this is returned to caller)
     doc->grid = malloc(doc->rows * doc->cols * sizeof(struct xlsx_value));
 
     if (!doc->grid)
@@ -274,21 +243,18 @@ static int _xlsx_sheet(zip_t *archive, const char *path, struct xlsx *doc)
         perror("malloc");
 
         xmlFreeDoc(wsdata->doc);
-        zclose(archive);
-
         return 1;
     }
 
-    // Also get a block of memory to store column names temporarily
+    // Also get a block of memory to store column names temporarily (this is not returned to caller)
     char *cnames = malloc((cname_maxlen + 1) * sizeof(char) * doc->cols);
 
     if (!cnames)
     {
         perror("malloc");
 
-        free(doc->grid);
         xmlFreeDoc(wsdata->doc);
-        zclose(archive);
+        free(doc->grid);
 
         return 1;
     }
@@ -296,10 +262,7 @@ static int _xlsx_sheet(zip_t *archive, const char *path, struct xlsx *doc)
     // Second time visiting the full document.
     // We could wrap this together with some dynamic allocation, but I like this way better.
     // Even on documents that are many megabytes, this is pretty quick.
-    xml_visit_tree(sheet, 1, ^(xmlNodePtr row, size_t depth, size_t i) {
-        // This can happen on failure in the inner loop.
-        if (!doc->grid) { return false; }
-
+    ok = !xml_visit_tree(sheet, 1, ^(xmlNodePtr row, size_t depth, size_t i) {
         // We've already checked to make sure this exists above.
         size_t name_adjust = strlen(xml_node_attribute(row, "r"));
 
@@ -311,7 +274,7 @@ static int _xlsx_sheet(zip_t *archive, const char *path, struct xlsx *doc)
         }
 
         // Visit each column, parsing grid values as we go.
-        xml_visit_tree(row, 2, ^(xmlNodePtr col, size_t depth, size_t _j) {
+        int keep_going = !xml_visit_tree(row, 2, ^(xmlNodePtr col, size_t depth, size_t _j) {
             // Check if something bad happens and get out. This is used in a few places.
             #define _give_up()                                                          \
                 do {                                                                    \
@@ -322,10 +285,7 @@ static int _xlsx_sheet(zip_t *archive, const char *path, struct xlsx *doc)
                         }                                                               \
                     }                                                                   \
                                                                                         \
-                    /* Free the data grid to indicate failure. */                       \
-                    free(doc->grid);                                                    \
-                                                                                        \
-                    return false;                                                       \
+                    return -1;                                                          \
                 } while (0)
 
             // The column number above may be bogus. We have to look up the specified row.
@@ -362,6 +322,8 @@ static int _xlsx_sheet(zip_t *archive, const char *path, struct xlsx *doc)
                 if (!found)
                 {
                     fprintf(stderr, "Error: Value in row %zu has unknown column '%.*s'\n", i, (int)cname_len, cname);
+
+                    // The below macro returns.
                     _give_up();
                 }
             }
@@ -377,7 +339,7 @@ static int _xlsx_sheet(zip_t *archive, const char *path, struct xlsx *doc)
 
             // No value.
             if (!val || !val->content || !val->content[0]) {
-                return false;
+                return 1;
             }
 
             // For strings, we need to determine type by attribute.
@@ -437,10 +399,10 @@ static int _xlsx_sheet(zip_t *archive, const char *path, struct xlsx *doc)
                 }
             }
 
-            return false;
+            return 1;
         });
 
-        return false;
+        return (keep_going ? 1 : -1);
     });
 
     // Get rid of temp column names
@@ -450,9 +412,9 @@ static int _xlsx_sheet(zip_t *archive, const char *path, struct xlsx *doc)
     xmlFreeDoc(wsdata->doc);
 
     // Check if we failed.
-    if (!doc->grid)
+    if (!ok)
     {
-        zclose(archive);
+        free(doc->grid);
         return 1;
     }
 
@@ -518,11 +480,13 @@ struct xlsx *xlsx_doc_at(const char *path)
                 target = xml_attr_val(attr);
             }
 
-            return ((!target) || (!type));
+            // This returns 0 (keep going) if either is missing or
+            // -1 (stop now) if we found both already.
+            return (target && type) ? -1 : 0;
         });
 
         if (!target || !type) {
-            return false;
+            return -1;
         }
 
         if (DEBUG_XLSX) {
@@ -535,9 +499,11 @@ struct xlsx *xlsx_doc_at(const char *path)
             strings = target;
         }
 
-        return false;
+        // Similar to the above. Stop once we find both things we're looking for.
+        return (worksheet && strings) ? -1 : 1;
     });
 
+    // Make sure we got both things we're looking for.
     if (!worksheet || !strings)
     {
         fprintf(stderr, "Error: Excel document is missing worksheet and/or strings.\n");
@@ -565,6 +531,7 @@ struct xlsx *xlsx_doc_at(const char *path)
     if (_xlsx_strtab(archive, strings, &doc->strtab))
     {
         xmlFreeDoc(rels->doc);
+        zclose(archive);
         free(doc);
 
         return NULL;
@@ -572,10 +539,11 @@ struct xlsx *xlsx_doc_at(const char *path)
 
     if (_xlsx_sheet(archive, worksheet, doc))
     {
-        xmlFreeDoc(rels->doc);
-
         xmlFreeDoc(doc->strtab.ref);
         free(doc->strtab.base);
+
+        xmlFreeDoc(rels->doc);
+        zclose(archive);
         free(doc);
 
         return NULL;
@@ -596,32 +564,35 @@ struct xlsx_value *xlsx_row(struct xlsx *doc, size_t i)
     }
 }
 
-void xlsx_foreach_row(struct xlsx *doc, int (^blk)(struct xlsx_value *row, size_t n))
+int xlsx_foreach_row(struct xlsx *doc, int (^blk)(struct xlsx_value *row, size_t n))
 {
-    for (size_t i = 0; i < xlsx_rows(doc); i++) {
-        if (!blk(xlsx_row(doc, i), i)) { break; }
+    for (size_t i = 0; i < xlsx_rows(doc); i++)
+    {
+        int status = blk(xlsx_row(doc, i), i);
+        if (status) { return status; }
     }
+
+    return 0;
 }
 
 // This could be more efficient, but it would take a lot of extra memory.
-void xlsx_iter_col(struct xlsx *doc, size_t col, int (^blk)(struct xlsx_value *entry, size_t n))
+int xlsx_iter_col(struct xlsx *doc, size_t col, int (^blk)(struct xlsx_value *entry, size_t n))
 {
-    xlsx_foreach_row(doc, ^(struct xlsx_value *row, size_t n) {
+    return xlsx_foreach_row(doc, ^(struct xlsx_value *row, size_t n) {
         return blk(&row[col], n);
     });
 }
 
-void xlsx_foreach(struct xlsx *doc, int (^blk)(struct xlsx_value *value, size_t row, size_t col))
+int xlsx_foreach(struct xlsx *doc, int (^blk)(struct xlsx_value *value, size_t row, size_t col))
 {
-    xlsx_foreach_row(doc, ^(struct xlsx_value *row, size_t n) {
+    return xlsx_foreach_row(doc, ^(struct xlsx_value *row, size_t n) {
         for (size_t col = 0; col < xlsx_cols(doc); col++)
         {
-            if (!blk(&row[col], n, col)) {
-                return false;
-            }
+            int status = blk(&row[col], n, col);
+            if (status) { return status; }
         }
 
-        return true;
+        return 0;
     });
 }
 

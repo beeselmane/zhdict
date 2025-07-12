@@ -1,7 +1,7 @@
 /* ********************************************************** */
 /* -*- sqlite.c -*- Helper routines for sqlite            -*- */
 /* ********************************************************** */
-/* Tyler Besselman (C) August 2024                            */
+/* Tyler Besselman (C) December 2024                          */
 /* ********************************************************** */
 
 #include <sqlite.h>
@@ -33,6 +33,10 @@ static int _sqlite_exec_callback(void *block, int cols, char **cvals, char **cna
 
 int sqlite_exec(sqlite3 *db, const char *query, int (^callback)(int cols, char **cvals, char **cnames))
 {
+    if (DEBUG_SQLITE) {
+        printf("sqlite_exec: '%s'\n", query);
+    }
+
     // Possible error message.
     char *err;
 
@@ -45,7 +49,7 @@ int sqlite_exec(sqlite3 *db, const char *query, int (^callback)(int cols, char *
             fprintf(stderr, "sqlite3_exec: %s\n", err);
             sqlite3_free(err);
         } else {
-            _sqlerror("sqlite3_exec", res);
+            sqlerror("sqlite3_exec", db);
         }
 
         return 1;
@@ -58,11 +62,15 @@ sqlite3_stmt *sqlite_prepare(sqlite3 *db, const char *query)
 {
     sqlite3_stmt *res;
 
+    if (DEBUG_SQLITE) {
+        printf("sqlite_prepare: '%s'\n", query);
+    }
+
     int code = sqlite3_prepare_v2(db, query, -1, &res, NULL);
 
     if (code != SQLITE_OK)
     {
-        _sqlerror("sqlite3_prepare", code);
+        sqlerror("sqlite3_prepare", db);
         return NULL;
     }
 
@@ -80,6 +88,14 @@ int sqlite_bind_str(sqlite3_stmt *statement, int loc, const char *str)
 int sqlite_bind_int(sqlite3_stmt *statement, int loc, int val)
 {
     int code = sqlite3_bind_int(statement, loc, val);
+
+    if (code != SQLITE_OK) { _sqlerror("sqlite3_bind", code); }
+    return (code != SQLITE_OK);
+}
+
+int sqlite_bind_null(sqlite3_stmt *statement, int loc)
+{
+    int code = sqlite3_bind_null(statement, loc);
 
     if (code != SQLITE_OK) { _sqlerror("sqlite3_bind", code); }
     return (code != SQLITE_OK);

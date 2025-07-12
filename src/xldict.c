@@ -1,7 +1,7 @@
 /* ********************************************************** */
 /* -*- xldict.c -*- Query xlsx dictionary                 -*- */
 /* ********************************************************** */
-/* Tyler Besselman (C) August 2024                            */
+/* Tyler Besselman (C) December 2024                          */
 /* ********************************************************** */
 
 #include <strings.h>
@@ -17,7 +17,7 @@ static int do_query(struct xlsx *doc, const char *query, off_t names, off_t defs
         if (val->type != XLSX_TYPE_STR)
         {
             fprintf(stderr, "Error: Entry is not a string!\n");
-            return false;
+            return 1;
         }
 
         const char *name = xlsx_str(doc, val);
@@ -41,7 +41,7 @@ static int do_query(struct xlsx *doc, const char *query, off_t names, off_t defs
             }
         }
 
-        return true;
+        return 0;
     });
 
     return !!matches;

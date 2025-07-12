@@ -174,12 +174,9 @@ static int insert_rows(sqlite3 *db, const char *name, struct xlsx *doc, int *typ
             if (entry[col].type == XLSX_TYPE_INT) {
                 CHECK(sqlite_bind_int(stmt, col + 2, entry[col].ival));
             } else if (entry[col].type == XLSX_TYPE_NULL) {
-                if (types[col] == XLSX_TYPE_INT) {
-                    CHECK(sqlite_bind_int(stmt, col + 2, -1));
-                } else {
-                    CHECK(sqlite_bind_str(stmt, col + 2, NULL));
-                }
+                CHECK(sqlite_bind_null(stmt, col + 2));
             } else {
+                //printf("Bind %s = %s", XLSX_STRVAL(&header[col]), XLSX_STRVAL(&entry[col]));
                 CHECK(sqlite_bind_str(stmt, col + 2, XLSX_STRVAL(&entry[col])));
             }
         }

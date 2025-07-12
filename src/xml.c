@@ -1,7 +1,7 @@
 /* ********************************************************** */
 /* -*- xml.c -*- XML routines on top of libxml2           -*- */
 /* ********************************************************** */
-/* Tyler Besselman (C) August 2024                            */
+/* Tyler Besselman (C) December 2024                          */
 /* ********************************************************** */
 
 #include <strings.h>
@@ -105,7 +105,7 @@ xmlNodePtr zxml_root_at(zip_t *archive, const char *path)
 
     zip_int64_t read = zip_fread(file, buf, zstat.size);
 
-    if (read < zstat.size)
+    if (read < (int64_t)zstat.size)
     {
         if (read < 0) {
             zerror("zip_fread", archive);
@@ -138,22 +138,28 @@ xmlNodePtr zxml_root_at(zip_t *archive, const char *path)
     return root;
 }
 
-void xml_visit_tree(xmlNodePtr root, size_t depth, int (^blk)(xmlNodePtr node, size_t depth, size_t n))
+int xml_visit_tree(xmlNodePtr root, size_t depth, int (^blk)(xmlNodePtr node, size_t depth, size_t n))
 {
     size_t n = 0;
 
     foreach(root, child, children, {
-        if (blk(child, depth + 1, n))
-        {
+        int status = blk(child, depth + 1, n);
+
+        if (!status) {
             if (depth + 1 >= XML_MAX_DEPTH) {
                 fprintf(stderr, "Error: Reached maximum nesting depth in XML tree!\n");
+                return -1;
             } else {
                 xml_visit_tree(child, depth + 1, blk);
             }
+        } else if (status < 0) {
+            return status;
         }
 
         n++;
     });
+
+    return 0;
 }
 
 static xmlNodePtr _xml_find_internal(xmlNodePtr root, size_t depth, const char *path)
@@ -194,20 +200,21 @@ static xmlNodePtr _xml_find_internal(xmlNodePtr root, size_t depth, const char *
 xmlNodePtr xml_find(xmlNodePtr root, const char *path)
 { return _xml_find_internal(root, 1, path); }
 
-void xml_node_attributes(xmlNodePtr node, int (^blk)(xmlAttrPtr attr, size_t n))
+int xml_node_attributes(xmlNodePtr node, int (^blk)(xmlAttrPtr attr, size_t n))
 {
     xmlAttrPtr attr = node->properties;
     size_t n = 0;
 
     while (attr)
     {
-        if (!blk(attr, n)) {
-            return;
-        }
+        int status = blk(attr, n);
+        if (status) { return status; }
 
         attr = attr->next;
         n++;
     }
+
+    return 0;
 }
 
 char *xml_attr_val(xmlAttrPtr attr)
@@ -218,10 +225,10 @@ char *xml_node_attribute(xmlNodePtr node, const char *name)
     __block char *value = NULL;
 
     xml_node_attributes(node, ^(xmlAttrPtr attr, size_t _) {
-        if (strcmp(name, (char *)attr->name)) { return true; }
+        if (strcmp(name, (char *)attr->name)) { return 0; }
 
         value = xml_attr_val(attr);
-        return false;
+        return 1;
     });
 
     return value;
@@ -272,6 +279,6 @@ void xml_dump_tree(xmlNodePtr root)
             printf(" \"%s\"\n", node->content);
         }
 
-        return true;
+        return 0;
     });
 }

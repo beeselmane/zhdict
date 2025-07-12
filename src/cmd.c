@@ -1,7 +1,7 @@
 /* ********************************************************** */
 /* -*- cmd.c -*- Source for some basic XML/XLSX utilities -*- */
 /* ********************************************************** */
-/* Tyler Besselman (C) August 2024                            */
+/* Tyler Besselman (C) December 2024                          */
 /* ********************************************************** */
 
 #include <stdbool.h>
@@ -22,7 +22,6 @@
 
         struct xlsx *document = xlsx_doc_at(argv[1]);
         if (!document) { return 1; }
-        __block size_t lrow = 0;
 
         printf("%4s", "");
 
@@ -50,7 +49,7 @@
             }
 
             putchar('\n');
-            return true;
+            return 0;
         });
 
         xlsx_doc_free(document);

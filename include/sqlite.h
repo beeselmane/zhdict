@@ -1,7 +1,7 @@
 /* ********************************************************** */
 /* -*- sqlite.h -*- Helper routines for sqlite            -*- */
 /* ********************************************************** */
-/* Tyler Besselman (C) August 2024                            */
+/* Tyler Besselman (C) December 2024                          */
 /* ********************************************************** */
 
 #ifndef __SQLITE__
@@ -9,6 +9,9 @@
 
 #include <sqlite3.h>
 #include <stdio.h>
+
+// Enable debug messages
+#define DEBUG_SQLITE 1
 
 // Database error printing (raw error code)
 static inline void _sqlerror(const char *func, int code)
@@ -32,6 +35,9 @@ extern int sqlite_bind_str(sqlite3_stmt *statement, int loc, const char *str);
 
 // Bind a number
 extern int sqlite_bind_int(sqlite3_stmt *statement, int loc, int val);
+
+// Bind a null value
+extern int sqlite_bind_null(sqlite3_stmt *statement, int loc);
 
 // Execute a statement
 extern int sqlite_step(sqlite3_stmt *statement);

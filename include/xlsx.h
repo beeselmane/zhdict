@@ -1,7 +1,7 @@
 /* ********************************************************** */
 /* -*- xlsx.h -*- Excel XLSX format reader                -*- */
 /* ********************************************************** */
-/* Tyler Besselman (C) August 2024                            */
+/* Tyler Besselman (C) December 2024                          */
 /* ********************************************************** */
 
 #ifndef __XLSX__
@@ -78,15 +78,18 @@ extern struct xlsx *xlsx_doc_at(const char *path);
 // Get the i'th row in an excel document
 extern struct xlsx_value *xlsx_row(struct xlsx *doc, size_t i);
 
-// Perform a block on each row in an excel document. There are `xlsx_cols(doc)` entries in the passed array. `n` is the row number. Return `0` to stop.
-extern void xlsx_foreach_row(struct xlsx *doc, int (^blk)(struct xlsx_value *row, size_t n));
+// Perform a block on each row in an excel document. There are `xlsx_cols(doc)` entries in the passed array. `n` is the row number.
+// If `blk` returns 0, keep going. If `blk` returns any other value, the function will stop and return this value.
+extern int xlsx_foreach_row(struct xlsx *doc, int (^blk)(struct xlsx_value *row, size_t n));
 
 // Iterate a block over a column in an excel document. The block will get called on each entry in the given column.
-// There are `xlsx_rows(doc)` entries in each column. `n` is the row number of the entry in this column. Return `0` to stop.
-extern void xlsx_iter_col(struct xlsx *doc, size_t col, int (^blk)(struct xlsx_value *entry, size_t n));
+// There are `xlsx_rows(doc)` entries in each column. `n` is the row number of the entry in this column.
+// If `blk` returns 0, keep going. If `blk` returns any other value, the function will stop and return this value.
+extern int xlsx_iter_col(struct xlsx *doc, size_t col, int (^blk)(struct xlsx_value *entry, size_t n));
 
-// Iterate over all entries. Return `0` to stop.
-extern void xlsx_foreach(struct xlsx *doc, int (^blk)(struct xlsx_value *value, size_t row, size_t col));
+// Iterate over all entries.
+// If `blk` returns 0, keep going. If `blk` returns any other value, the function will stop and return this value.
+extern int xlsx_foreach(struct xlsx *doc, int (^blk)(struct xlsx_value *value, size_t row, size_t col));
 
 // Free memory for an excel document, destroying it.
 extern void xlsx_doc_free(struct xlsx *doc);
